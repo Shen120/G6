@@ -10,6 +10,7 @@ import {
   NodeDisplayModel,
   NodeModel,
 } from '../../../types';
+import type { VisibilityOptions } from '../../../types/graph';
 import { Plugin as Base, IPluginBaseConfig } from '../../../types/plugin';
 import { GraphTransformOptions } from '../../../types/view';
 import { intersectBBox } from '../../../utils/shape';
@@ -115,6 +116,20 @@ export class LodController extends Base {
     return debounce(fn, this.debounce, false);
   };
 
+  private showItem(ids: ID | ID[], options: VisibilityOptions['visibility']) {
+    const idArr = Array.isArray(ids) ? ids : [ids];
+    idArr.forEach((id) => {
+      this.graph.setItemVisibility(id, 'visibility', options);
+    });
+  }
+
+  private hideItem(ids: ID | ID[], options: VisibilityOptions['hidden']) {
+    const idArr = Array.isArray(ids) ? ids : [ids];
+    idArr.forEach((id) => {
+      this.graph.setItemVisibility(id, 'hidden', options);
+    });
+  }
+
   private updateVisible = (zoomRatio = 1) => {
     const { graph, cacheViewModels, options } = this;
     const { cellSize, numberPerCell, disableAnimate, disableLod } = options || {};
@@ -163,7 +178,7 @@ export class LodController extends Base {
       }
 
       const bounds = this.getRenderBBox(model.id);
-      if (!bounds || !graph.getItemVisible(model.id)) {
+      if (!bounds || !graph.getItemVisibility(model.id)) {
         lodInvisibleIds.set(model.id, invisibleShapeIds);
         return;
       }
@@ -206,7 +221,7 @@ export class LodController extends Base {
         const { lodVisibleShapeIds, autoVisibleShapeIds, invisibleShapeIds } = candidateShapeMap.get(id);
 
         if (!disableLod && invisibleShapeIds.length) {
-          graph.hideItem(id, { shapeIds: invisibleShapeIds, disableAnimate });
+          this.hideItem(id, { shapeIds: invisibleShapeIds, disableAnimate });
         }
         const item = graph.itemController.itemMap.get(id);
         if (
@@ -215,7 +230,7 @@ export class LodController extends Base {
         ) {
           const shapeIdsToShow = lodVisibleShapeIds.concat(autoVisibleShapeIds);
           if (shapeIdsToShow.length) {
-            graph.showItem(id, {
+            this.showItem(id, {
               shapeIds: lodVisibleShapeIds.concat(autoVisibleShapeIds),
               disableAnimate,
             });
@@ -232,12 +247,12 @@ export class LodController extends Base {
             this.labelPositionDirty.delete(id);
           }
           lodVisibleShapeIds.length &&
-            graph.showItem(id, {
+            this.showItem(id, {
               shapeIds: lodVisibleShapeIds,
               disableAnimate,
             });
           if (!disableLod && autoVisibleShapeIds.length) {
-            graph.hideItem(id, {
+            this.hideItem(id, {
               shapeIds: autoVisibleShapeIds,
               disableAnimate,
             });
@@ -247,7 +262,7 @@ export class LodController extends Base {
     });
     if (!disableLod) {
       lodInvisibleIds.forEach((shapeIds, id) => {
-        shapeIds.length && graph.hideItem(id, { shapeIds, disableAnimate });
+        shapeIds.length && this.hideItem(id, { shapeIds, disableAnimate });
       });
     }
     this.shownIds = shownIds;
@@ -317,14 +332,14 @@ export class LodController extends Base {
         }
       });
       newlyOutView.forEach((model) => {
-        graph.hideItem(model.id, {
+        this.hideItem(model.id, {
           shapeIds: ['labelShape', 'labelBackgroundShape'],
           disableAnimate: true,
         });
       });
       if (options?.disableLod) {
         newlyInView.forEach((model) => {
-          graph.showItem(model.id, {
+          this.showItem(model.id, {
             shapeIds: ['labelShape', 'labelBackgroundShape'],
             disableAnimate: true,
           });
@@ -513,7 +528,7 @@ export class LodController extends Base {
         this.displayModelCache.delete(model.id);
       }
       if (this.options?.disableLod) {
-        this.graph.showItem(model.id, {
+        this.this.showItem(model.id, {
           shapeIds: ['labelShape', 'labelBackgroundShape'],
           disableAnimate: true,
         });

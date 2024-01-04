@@ -1,6 +1,7 @@
 import { isBoolean, isNumber } from '@antv/util';
 import { ID, IG6GraphEvent } from '../../types';
 import { Behavior } from '../../types/behavior';
+import type { VisibilityOptions } from '../../types/graph';
 
 const VALID_TRIGGERS = ['wheel', 'upDownKeys'];
 const WHEEL_DURATION = 250;
@@ -143,6 +144,20 @@ export class ZoomCanvas extends Behavior {
     };
   }
 
+  private showItem(ids: ID | ID[], options: VisibilityOptions['visibility']) {
+    const idArr = Array.isArray(ids) ? ids : [ids];
+    idArr.forEach((id) => {
+      this.graph.setItemVisibility(id, 'visibility', options);
+    });
+  }
+
+  private hideItem(ids: ID | ID[], options: VisibilityOptions['hidden']) {
+    const idArr = Array.isArray(ids) ? ids : [ids];
+    idArr.forEach((id) => {
+      this.graph.setItemVisibility(id, 'hidden', options);
+    });
+  }
+
   private hideShapes() {
     const { graph } = this;
     const { tileBehavior: graphBehaviorOptimize, tileBehaviorSize = 1000 } = graph.getSpecification().optimize || {};
@@ -152,11 +167,11 @@ export class ZoomCanvas extends Behavior {
       this.hiddenEdgeIds = graph
         .getAllEdgesData()
         .map((edge) => edge.id)
-        .filter((id) => graph.getItemVisible(id) === true);
+        .filter((id) => graph.getItemVisibility(id) === true);
       this.hiddenNodeIds = graph
         .getAllNodesData()
         .map((node) => node.id)
-        .filter((id) => graph.getItemVisible(id) === true);
+        .filter((id) => graph.getItemVisibility(id) === true);
 
       const hiddenIds = [...this.hiddenNodeIds];
       const sectionNum = Math.ceil(hiddenIds.length / tileBehaviorSize);
@@ -171,7 +186,7 @@ export class ZoomCanvas extends Behavior {
         }
         const section = sections.shift();
         graph.startHistoryBatch();
-        graph.hideItem(section, { disableAnimate: false, keepKeyShape: true });
+        this.hideItem(section, { disableAnimate: false, keepKeyShape: true });
         graph.stopHistoryBatch();
         this.tileRequestId = requestAnimationFrame(update);
       };
@@ -203,7 +218,7 @@ export class ZoomCanvas extends Behavior {
             return;
           }
           graph.executeWithNoStack(() => {
-            graph.showItem(sections.shift(), { disableAnimate: false });
+            this.showItem(sections.shift(), { disableAnimate: false });
           });
           this.tileRequestId = requestAnimationFrame(update);
         };
@@ -315,7 +330,7 @@ export class ZoomCanvas extends Behavior {
         const balanceLabelShape = () => {
           item.updateLabelPosition();
           item.displayModel.labelShapeVisible = true;
-          graph.showItem(id, {
+          this.showItem(id, {
             shapeIds: ['labelShape', 'labelBackgroundShape'],
             disableAnimate: true,
           });

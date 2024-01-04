@@ -27,7 +27,7 @@ export default (graph: IGraph, points: Point[], itemTypes: ITEM_TYPE[]) => {
     graph.getAllNodesData().forEach((node) => {
       const { id } = node;
       if (
-        graph.getItemVisible(id) && // hidden node is not selectable
+        graph.getItemVisibility(id) && // hidden node is not selectable
         isBBoxCenterInRect(graph, id, left, right, top, bottom)
       ) {
         selectedNodeIds.push(id);
@@ -39,7 +39,7 @@ export default (graph: IGraph, points: Point[], itemTypes: ITEM_TYPE[]) => {
     graph.getAllCombosData().forEach((combo) => {
       const { id } = combo;
       if (
-        graph.getItemVisible(id) && // hidden combo is not selectable
+        graph.getItemVisibility(id) && // hidden combo is not selectable
         isBBoxCenterInRect(graph, id, left, right, top, bottom)
       ) {
         selectedComboIds.push(id);

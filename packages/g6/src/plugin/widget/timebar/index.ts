@@ -363,7 +363,7 @@ export class Timebar extends Base {
         const queryItem = type === 'node' ? this.graph.getNodeData(item.id) : this.graph.getEdgeData(item.id);
         const time = getTimeFromItem(item, type);
         const isItemExists = queryItem !== undefined;
-        const isItemVisible = queryItem && this.graph.getItemVisible(item.id);
+        const isItemVisible = queryItem && this.graph.getItemVisibility(item.id);
 
         const isEdgeDangling = () => {
           if (type !== 'edge') return false;
@@ -421,8 +421,8 @@ export class Timebar extends Base {
           exit.map((n) => n.id),
         );
       } else {
-        this.graph.showItem(enter.map((e) => e.id));
-        this.graph.hideItem(exit.map((e) => e.id));
+        enter.forEach((e) => this.graph.setItemVisibility(e.id, 'visibility'));
+        exit.forEach((e) => this.graph.setItemVisibility(e.id, 'hidden'));
       }
     };
 

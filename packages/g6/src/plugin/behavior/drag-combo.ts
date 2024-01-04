@@ -5,6 +5,7 @@ import { Behavior } from '../../types/behavior';
 import { Point } from '../../types/common';
 import { IG6GraphEvent } from '../../types/event';
 import { graphComboTreeDfs } from '../../utils/data';
+import { VisibilityOptions } from '/runtime/graph';
 
 const DELEGATE_SHAPE_ID = 'g6-drag-combo-delegate-shape';
 
@@ -150,7 +151,7 @@ export class DragCombo extends Behavior {
       edges = edges.concat(this.graph.getRelatedEdgesData(child.id));
     });
     return uniq(edges).filter((edgeData) => {
-      return this.graph.getItemVisible(edgeData.id);
+      return this.graph.getItemVisibility(edgeData.id);
     });
   }
 
@@ -176,7 +177,7 @@ export class DragCombo extends Behavior {
 
     const items = begins;
     graphComboTreeDfs(this.graph, begins, (child) => items.push(child), 'TB');
-    return uniq(items).filter((item) => !selectedComboIds.includes(item.id) && this.graph.getItemVisible(item.id));
+    return uniq(items).filter((item) => !selectedComboIds.includes(item.id) && this.graph.getItemVisibility(item.id));
   }
 
   public onPointerDown(event: IG6GraphEvent) {
@@ -234,11 +235,11 @@ export class DragCombo extends Behavior {
         this.hiddenComboTreeRoots = this.getComboTreeItems(selectedComboIds);
         this.hiddenEdges = this.getRelatedEdges(selectedComboIds, this.hiddenComboTreeRoots);
         this.graph.executeWithNoStack(() => {
-          this.graph.hideItem(
+          this.hideItem(
             this.hiddenEdges.map((edge) => edge.id),
             { disableAnimate: true },
           );
-          this.graph.hideItem(
+          this.hideItem(
             this.hiddenComboTreeRoots.map((child) => child.id),
             { disableAnimate: true },
           );
@@ -261,12 +262,12 @@ export class DragCombo extends Behavior {
 
         // Hide original edges and nodes. They will be restored when pointerup.
         this.graph.executeWithNoStack(() => {
-          this.graph.hideItem(selectedComboIds, { disableAnimate: true });
-          this.graph.hideItem(
+          this.hideItem(selectedComboIds, { disableAnimate: true });
+          this.hideItem(
             this.hiddenEdges.map((edge) => edge.id),
             { disableAnimate: true },
           );
-          this.graph.hideItem(
+          this.hideItem(
             this.hiddenComboTreeRoots.map((child) => child.id),
             { disableAnimate: true },
           );
@@ -390,17 +391,31 @@ export class DragCombo extends Behavior {
     });
   }
 
+  private showItem(ids: ID | ID[], options: VisibilityOptions['visibility']) {
+    const idArr = Array.isArray(ids) ? ids : [ids];
+    idArr.forEach((id) => {
+      this.graph.setItemVisibility(id, 'visibility', options);
+    });
+  }
+
+  private hideItem(ids: ID | ID[], options: VisibilityOptions['hidden']) {
+    const idArr = Array.isArray(ids) ? ids : [ids];
+    idArr.forEach((id) => {
+      this.graph.setItemVisibility(id, 'hidden', options);
+    });
+  }
+
   public restoreHiddenItems(positions?: Position[]) {
     this.graph.pauseStack();
     if (this.hiddenEdges.length) {
-      this.graph.showItem(
+      this.showItem(
         this.hiddenEdges.map((edge) => edge.id),
         { disableAnimate: true },
       );
       this.hiddenEdges = [];
     }
     if (this.hiddenComboTreeRoots.length) {
-      this.graph.showItem(
+      this.showItem(
         this.hiddenComboTreeRoots.map((model) => model.id),
         { disableAnimate: true },
       );
@@ -408,7 +423,7 @@ export class DragCombo extends Behavior {
     }
     const enableTransient = this.options.enableTransient && this.graph.rendererType !== 'webgl-3d';
     if (enableTransient) {
-      this.graph.showItem(
+      this.showItem(
         this.originPositions.concat(positions).map((position) => position.id),
         { disableAnimate: true },
       );

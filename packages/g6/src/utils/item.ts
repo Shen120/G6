@@ -20,7 +20,7 @@ export const getEdgesBetween = (graph: IGraph, ids: ID[]): ID[] => {
     const edgesData = graph.getRelatedEdgesData(endId);
     edgesData.forEach((edge) => {
       const { source, target, id } = edge;
-      if (!graph.getItemVisible(id)) return; // hidden edge is not selectable
+      if (!graph.getItemVisibility(id)) return; // hidden edge is not selectable
       if (ids.includes(source) && ids.includes(target)) edgeIdSet.add(id);
     });
   });

@@ -53,7 +53,7 @@ export class LayoutController {
     const { graphCore, options, animate = true } = params;
     let layoutNodes = graphCore.getAllNodes();
     if (!isComboLayout(options)) {
-      layoutNodes = layoutNodes.filter((node) => this.graph.getItemVisible(node.id) && !node.data._isCombo);
+      layoutNodes = layoutNodes.filter((node) => this.graph.getItemVisibility(node.id) && !node.data._isCombo);
     }
     const layoutNodesIdMap = {};
     layoutNodes.forEach((node) => (layoutNodesIdMap[node.id] = true));
@@ -356,7 +356,7 @@ export class LayoutController {
     const trees = graphCore
       .getRoots('tree')
       .filter(
-        (node) => !node.data._isCombo, // this.graph.getItemVisible(node.id) &&
+        (node) => !node.data._isCombo, // this.graph.getItemVisibility(node.id) &&
       )
       .map((node) => ({ id: node.id, children: [] }));
 

@@ -516,7 +516,12 @@ export class DataController {
         .getAllEdges()
         .filter(({ source, target }) => succeedIds.includes(source) && succeedIds.includes(target))
         .map((edge) => edge.id);
-      this.graph.showItem(succeedIds.filter((succeedId) => succeedId !== id).concat(succeedEdgeIds));
+      succeedIds
+        .filter((succeedId) => succeedId !== id)
+        .concat(succeedEdgeIds)
+        .forEach((succeedId) => {
+          this.graph.setItemVisibility(succeedId, 'visibility');
+        });
 
       // for tree graph view, remove the node from the parent's children list
       graphCore.setParent(id, undefined, 'tree');

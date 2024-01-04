@@ -1,7 +1,7 @@
 import { isBoolean, isNumber, isObject } from '@antv/util';
 import { ID, IG6GraphEvent } from '../../types';
 import { Behavior } from '../../types/behavior';
-
+import type { VisibilityOptions } from '../../types/graph';
 interface ScrollCanvasOptions {
   /**
    * The direction of dragging that is allowed. Options: 'x', 'y', 'both'. 'both' by default.
@@ -200,6 +200,13 @@ export class ScrollCanvas extends Behavior {
     return { dx, dy };
   }
 
+  private hideItem(ids: ID | ID[], options: VisibilityOptions['hidden']) {
+    const idArr = Array.isArray(ids) ? ids : [ids];
+    idArr.forEach((id) => {
+      this.graph.setItemVisibility(id, 'hidden', options);
+    });
+  }
+
   private allowDrag(evt: IG6GraphEvent) {
     const { itemType } = evt;
     const { allowDragOnItem } = this.options;
@@ -225,8 +232,8 @@ export class ScrollCanvas extends Behavior {
       const newHiddenEdgeIds = graph
         .getAllEdgesData()
         .map((edge) => edge.id)
-        .filter((id) => graph.getItemVisible(id));
-      graph.hideItem(newHiddenEdgeIds, { disableAnimate: true });
+        .filter((id) => graph.getItemVisibility(id));
+      this.hideItem(newHiddenEdgeIds, { disableAnimate: true });
 
       if (currentZoom < optimizeZoom) {
         this.hiddenEdgeIds.push(...newHiddenEdgeIds);
@@ -237,7 +244,7 @@ export class ScrollCanvas extends Behavior {
       const newHiddenNodeIds = graph
         .getAllNodesData()
         .map((node) => node.id)
-        .filter((id) => graph.getItemVisible(id));
+        .filter((id) => graph.getItemVisibility(id));
 
       let requestId;
       const sectionNum = Math.ceil(newHiddenNodeIds.length / tileBehaviorSize);
@@ -251,7 +258,7 @@ export class ScrollCanvas extends Behavior {
         }
         const section = sections.shift();
         graph.startHistoryBatch();
-        graph.hideItem(section, { disableAnimate: false, keepKeyShape: true });
+        this.hideItem(section, { disableAnimate: false, keepKeyShape: true });
         graph.stopHistoryBatch();
         requestId = requestAnimationFrame(update);
       };
@@ -295,7 +302,9 @@ export class ScrollCanvas extends Behavior {
         return;
       }
       graph.executeWithNoStack(() => {
-        graph.showItem(sections.shift(), { disableAnimate: false });
+        sections.shift().forEach((id) => {
+          graph.setItemVisibility(id, 'visibility', { disableAnimate: false });
+        });
       });
       requestId = requestAnimationFrame(update);
     };

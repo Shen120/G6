@@ -121,12 +121,8 @@ const createOperations = (graph): any => {
   const visibilityButton = document.createElement('button');
   visibilityButton.innerText = 'show/hide node';
   visibilityButton.addEventListener('click', () => {
-    const visible = graph.getItemVisible('node4');
-    if (visible) {
-      graph.hideItem('node4');
-    } else {
-      graph.showItem('node4');
-    }
+    const visible = graph.getItemVisibility('node4');
+    graph.setItemVisibility('node4', visible ? 'visibility' : 'hidden');
   });
   parentEle.appendChild(visibilityButton);
 

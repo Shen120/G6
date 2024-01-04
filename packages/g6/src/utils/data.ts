@@ -297,9 +297,9 @@ export const isEmptyGraph = (graph, excludeInvisible = false): boolean => {
 
   if (excludeInvisible) {
     const edges = graph.getAllEdgesData();
-    if (nodes.find((node) => graph.getItemVisible(node.id))) return false;
-    if (edges.find((edge) => graph.getItemVisible(edge.id))) return false;
-    if (combos.find((combo) => graph.getItemVisible(combo.id))) return false;
+    if (nodes.find((node) => graph.getItemVisibility(node.id))) return false;
+    if (edges.find((edge) => graph.getItemVisibility(edge.id))) return false;
+    if (combos.find((combo) => graph.getItemVisibility(combo.id))) return false;
     return true;
   }
   return false;

@@ -22,7 +22,7 @@ export default (graph: IGraph, points: Point[], itemTypes: ITEM_TYPE[]) => {
   if (itemTypes.includes('node')) {
     graph.getAllNodesData().forEach((node) => {
       const { id } = node;
-      if (!graph.getItemVisible(id)) return; // hidden node is not selectable
+      if (!graph.getItemVisibility(id)) return; // hidden node is not selectable
       if (isItemIntersectPolygon(graph, id, lassoContour)) {
         selectedNodeIds.push(id);
       }
@@ -33,7 +33,7 @@ export default (graph: IGraph, points: Point[], itemTypes: ITEM_TYPE[]) => {
     graph.getAllCombosData().forEach((combo) => {
       const { id } = combo;
       if (
-        graph.getItemVisible(id) && // hidden combo is not selectable
+        graph.getItemVisibility(id) && // hidden combo is not selectable
         isItemIntersectPolygon(graph, id, lassoContour)
       ) {
         selectedComboIds.push(id);

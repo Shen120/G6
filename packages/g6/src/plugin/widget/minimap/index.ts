@@ -421,7 +421,7 @@ export class Minimap extends Base {
       minimapItem.style[key] = attrs[key];
     });
 
-    if (!graph.getItemVisible(nodeModel.id)) minimapItem.hide();
+    if (!graph.getItemVisibility(nodeModel.id)) minimapItem.hide();
     else minimapItem.show();
     const zIndex = nodeModel.data.depth;
     if (!isNaN(zIndex)) minimapItem.set('zIndex', zIndex);
@@ -503,7 +503,7 @@ export class Minimap extends Base {
       minimapItem.id = `minimap-keyShape-${edgeModel.id}`;
       group.appendChild(minimapItem);
     }
-    if (!graph.getItemVisible(edgeModel.id)) minimapItem.hide();
+    if (!graph.getItemVisibility(edgeModel.id)) minimapItem.hide();
     else minimapItem.show();
     itemMap.set(edgeModel.id, { graphItem, minimapItem });
     this.itemMap = itemMap;
@@ -552,7 +552,7 @@ export class Minimap extends Base {
     }
     minimapItem.toFront();
 
-    if (!graph.getItemVisible(nodeModel.id)) minimapItem.hide();
+    if (!graph.getItemVisibility(nodeModel.id)) minimapItem.hide();
     else minimapItem.show();
     itemMap.set(nodeModel.id, { graphItem, minimapItem });
     this.itemMap = itemMap;

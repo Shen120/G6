@@ -20,6 +20,7 @@ import {
 import { ComboDisplayModel, ComboEncode, ComboShapesEncode } from '../../types/combo';
 import { GraphCore } from '../../types/data';
 import { EdgeDisplayModel, EdgeEncode, EdgeModel, EdgeModelData, EdgeShapesEncode } from '../../types/edge';
+import type { VisibilityOptions } from '../../types/graph';
 import { ViewportChangeHookParams } from '../../types/hook';
 import { DisplayMapper, ITEM_TYPE, LodLevelRanges, SHAPE_TYPE, ShapeStyle } from '../../types/item';
 import {
@@ -559,7 +560,7 @@ export class ItemController {
         const parentItem = this.itemMap.get(current.parentId);
         if (current.parentId && parentItem?.model.data.collapsed) {
           this.graph.executeWithNoStack(() => {
-            this.graph.hideItem(innerModel.id, { disableAnimate: false });
+            this.hideItem(innerModel.id, { disableAnimate: false });
           });
         }
       });
@@ -629,7 +630,7 @@ export class ItemController {
         let parent = graphCore.getParent(nodeId, 'tree');
         while (parent) {
           if (parent.data.collapsed) {
-            this.graph.hideItem(nodeId, { disableAnimate: true });
+            this.hideItem(nodeId, { disableAnimate: true });
             break;
           }
           parent = graphCore.getParent(parent.id, 'tree');
@@ -1452,7 +1453,7 @@ export class ItemController {
     graphComboTreeDfs(this.graph, [comboModel], (child) => {
       if (child.id !== comboModel.id) {
         this.graph.executeWithNoStack(() => {
-          this.graph.hideItem(child.id, { disableAnimate: false });
+          this.hideItem(child.id, { disableAnimate: false });
         });
       }
       relatedEdges = relatedEdges.concat(graphCore.getRelatedEdges(child.id));
@@ -1461,7 +1462,7 @@ export class ItemController {
     const pairs = [];
     uniq(relatedEdges).forEach((edge) => {
       const { id, source: s, target: t } = edge;
-      if (!this.graph.getItemVisible(id)) return;
+      if (!this.graph.getItemVisibility(id)) return;
       const sourceIsSucceed = succeedIds.includes(s);
       const targetIsSucceed = succeedIds.includes(t);
       // do not add virtual edge if the source and target are both the succeed
@@ -1473,6 +1474,20 @@ export class ItemController {
     // each item in groupedEdges is a virtual edge
     this.graph.executeWithNoStack(() => {
       this.graph.addData('edge', groupVirtualEdges(pairs));
+    });
+  }
+
+  private showItem(ids: ID | ID[], options: VisibilityOptions['visibility']) {
+    const idArr = Array.isArray(ids) ? ids : [ids];
+    idArr.forEach((id) => {
+      this.graph.setItemVisibility(id, 'visibility', options);
+    });
+  }
+
+  private hideItem(ids: ID | ID[], options: VisibilityOptions['hidden']) {
+    const idArr = Array.isArray(ids) ? ids : [ids];
+    idArr.forEach((id) => {
+      this.graph.setItemVisibility(id, 'hidden', options);
     });
   }
 
@@ -1512,8 +1527,8 @@ export class ItemController {
         const { source, target } = graphCore.getEdge(eid);
         const ends = { source, target };
         const endsVisible = {
-          source: this.graph.getItemVisible(source) || nodesToShow.includes(source),
-          target: this.graph.getItemVisible(target) || nodesToShow.includes(target),
+          source: this.graph.getItemVisibility(source) || nodesToShow.includes(source),
+          target: this.graph.getItemVisibility(target) || nodesToShow.includes(target),
         };
         // actual edges to show
         if (endsVisible.source && endsVisible.target) return true;
@@ -1525,7 +1540,7 @@ export class ItemController {
             if (!visibleAncestorMap.get(ends[end])) {
               traverseAncestors(graphCore, [graphCore.getNode(ends[end])], (ancestor) => {
                 if (visibleAncestorMap.has(ends[end])) return;
-                if (this.graph.getItemVisible(ancestor.id) || nodesToShow.includes(ancestor.id))
+                if (this.graph.getItemVisibility(ancestor.id) || nodesToShow.includes(ancestor.id))
                   visibleAncestorMap.set(ends[end], ancestor.id);
               });
             }
@@ -1544,7 +1559,7 @@ export class ItemController {
     // remove related virtual edges
     this.graph.executeWithNoStack(() => {
       this.graph.removeData('edge', uniq(relatedVirtualEdgeIds));
-      this.graph.showItem(edgesToShow.concat(nodesToShow));
+      this.showItem(edgesToShow.concat(nodesToShow));
       // add virtual edges by grouping visible ancestor edges
       this.graph.addData('edge', groupVirtualEdges(virtualPairs));
     });
@@ -1617,7 +1632,7 @@ export class ItemController {
     if (!positions.length) return;
     this.graph.updateNodePosition(positions, undefined, !animate, (model, canceled) => {
       positions.forEach((position) => {
-        this.graph.hideItem(position.id, { disableAnimate: canceled });
+        this.hideItem(position.id, { disableAnimate: canceled });
       });
     });
   }
@@ -1650,7 +1665,7 @@ export class ItemController {
       allNodeIds = allNodeIds.concat(nodeIds.filter((id) => id !== root.id));
     });
     const ids = uniq(allNodeIds.concat(allEdgeIds));
-    this.graph.showItem(ids, { disableAnimate: !animate });
+    this.showItem(ids, { disableAnimate: !animate });
     await this.graph.layout(undefined, !animate);
   }
 }

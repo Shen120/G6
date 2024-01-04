@@ -12,6 +12,7 @@ import type { ComboDisplayModel, ComboModel, ComboShapesEncode } from '../types/
 import type { Bounds, Padding, Point } from '../types/common';
 import type { DataChangeType, DataConfig, GraphCore } from '../types/data';
 import type { EdgeDisplayModel, EdgeModel, EdgeModelData, EdgeShapesEncode } from '../types/edge';
+import type { Visibility, VisibilityOptions } from '../types/graph';
 import type { StackType } from '../types/history';
 import type { Hooks, ViewportChangeHookParams } from '../types/hook';
 import type { ITEM_TYPE, SHAPE_TYPE, ShapeStyle } from '../types/item';
@@ -60,7 +61,6 @@ export class Graph<B extends BehaviorRegistry, T extends ThemeRegistry> extends 
   // the tag indicates all the three canvases are all ready
   private canvasReady: boolean;
   private specification: Specification<B, T>;
-
   private dataController: DataController;
   private interactionController: InteractionController;
   private layoutController: LayoutController;
@@ -1360,7 +1360,7 @@ export class Graph<B extends BehaviorRegistry, T extends ThemeRegistry> extends 
   }
 
   private getItemPreviousVisibility(ids: ID[]) {
-    const objs = ids.map((id) => ({ id, visible: this.getItemVisible(id) }));
+    const objs = ids.map((id) => ({ id, visible: this.getItemVisibility(id) }));
     const groupedByVisible = groupBy(objs, 'visible');
 
     const values = [];
@@ -1382,7 +1382,7 @@ export class Graph<B extends BehaviorRegistry, T extends ThemeRegistry> extends 
    * @param options.shapeIds
    * @group Item
    */
-  public showItem(
+  protected showItem(
     ids: ID | ID[],
     options?: {
       disableAnimate?: boolean;
@@ -1443,13 +1443,13 @@ export class Graph<B extends BehaviorRegistry, T extends ThemeRegistry> extends 
    * @param options.shapeIds
    * @group Item
    */
-  public hideItem(
+  protected hideItem(
     ids: ID | ID[],
     options?: {
       disableAnimate?: boolean;
       keepKeyShape?: boolean;
       keepRelated?: boolean;
-      shapeIds?: string[];
+      shapeIds?: string | string[];
     },
   ) {
     const { disableAnimate = false, keepKeyShape = false, keepRelated = false, shapeIds } = options || {};
@@ -1494,6 +1494,45 @@ export class Graph<B extends BehaviorRegistry, T extends ThemeRegistry> extends 
       keepKeyShape,
       changes,
     });
+  }
+
+  /**
+   * <zh/> 设置元素可见性
+   *
+   * <en/> Set the visibility for the item.
+   * @param id - <zh/> 元素 id | <en/> item id
+   * @param visibility - <zh/> 元素可见性 | <en/> visibility for the item
+   * @param options -<zh/> 可选配置项 | <en/> optional configurations
+   */
+  public setItemVisibility(id: ID, visibility: Visibility, options: VisibilityOptions[Visibility]) {
+    if (visibility === 'visibility') {
+      this.showItem(id, options);
+    } else {
+      this.hideItem(id, options);
+    }
+  }
+
+  /**
+   * <zh/> 获取元素可见性
+   *
+   * <en/> Get the visibility for the item.
+   * @param id - <zh/> 元素 id | <en/> item id
+   * @returns - <zh/> 元素可见性，若元素不存在或不可见则返回 false | <en/> visibility for the item, false for invisible or unexistence for the item
+   * @public
+   */
+  public getItemVisibility(id: ID) {
+    return this.itemController.getItemVisible(id);
+  }
+
+  /**
+   * <zh/> 获取当前元素可见的 shape id
+   *
+   * <en/> Get the visible shape ids in a node / edge / combo.
+   * @param id - <zh/> 元素 id | <en/> item id
+   * @returns  - <zh/> 可见的 shape ids | <en/> ids of the visible shapes
+   */
+  public getItemVisibleShapeIds(id: ID) {
+    return this.itemController.getItemVisibleShapeIds(id);
   }
 
   /**
@@ -1546,14 +1585,15 @@ export class Graph<B extends BehaviorRegistry, T extends ThemeRegistry> extends 
       }));
     });
   }
+
   /**
-   * Set state for the item.
-   * @param item the item to be set
-   * @param state the state name
-   * @param ids
-   * @param states
-   * @param value state value
-   * @group Item
+   * <zh/> 设置元素状态
+   *
+   * <en/> Set the state for the item.
+   * @param ids - <zh/> 元素 id | <en/> item id
+   * @param states - <zh/> 状态集合 | <en/> states
+   * @param value - <zh/> 状态值 | <en/> state value
+   * @public
    */
   public setItemState(ids: ID | ID[], states: string | string[], value: boolean) {
     const idArr = isArray(ids) ? ids : [ids];
@@ -1579,13 +1619,15 @@ export class Graph<B extends BehaviorRegistry, T extends ThemeRegistry> extends 
       changes,
     });
   }
+
   /**
-   * Get the state value for an item.
-   * @param id the id for the item
-   * @param states the state name
-   * @param state
-   * @returns {boolean} the state value
-   * @group Item
+   * <zh/> 获取元素状态
+   *
+   * <en/> Get the state value for an item.
+   * @param id - <zh/> 元素 id | <en/> item id
+   * @param state - <zh/> 状态名 | <en/> state name
+   * @returns - <zh/> 状态值 | <en/> state value
+   * @public
    */
   public getItemState(id: ID, state: string) {
     return this.itemController.getItemState(id, state);
@@ -1640,25 +1682,6 @@ export class Graph<B extends BehaviorRegistry, T extends ThemeRegistry> extends 
   public getRenderBBox(id: ID | undefined, onlyKeyShape = false, isTransient = false): AABB | false {
     if (!id) return this.canvas.getRoot().getRenderBounds();
     return this.itemController.getItemBBox(id, onlyKeyShape, isTransient);
-  }
-
-  /**
-   * Get the visibility for a node / edge / combo.
-   * @param id the id for the node / edge / combo
-   * @returns visibility for the item, false for invisible or unexistence for the item
-   * @group Item
-   */
-  public getItemVisible(id: ID) {
-    return this.itemController.getItemVisible(id);
-  }
-
-  /**
-   * Get the visible shape ids in a node / edge / combo.
-   * @param id the id for the node / edge / combo
-   * @returns ids of the visible shapes
-   */
-  public getItemVisibleShapeIds(id: ID) {
-    return this.itemController.getItemVisibleShapeIds(id);
   }
 
   // ===== combo operations =====
@@ -1883,28 +1906,52 @@ export class Graph<B extends BehaviorRegistry, T extends ThemeRegistry> extends 
    * @param mode mode name
    * @group Interaction
    */
+
+  /**
+   * <zh/> 设置交互模式
+   *
+   * <en/> Set the interaction mode
+   * @param mode - <zh/> 交互模式 | <en/> interaction mode
+   * @public
+   */
   public setMode(mode: string) {
     this.hooks.modechange.emit({ mode });
   }
 
   /**
-   * Get current mode.
-   * @returns mode name
-   * @group Interaction
+   * <zh/> 获取交互模式
+   *
+   * <en/> Get the interaction mode
+   * @returns - <zh/> 交互模式 | <en/> interaction mode
+   * @public
    */
   public getMode(): string {
     return this.interactionController.getMode();
   }
 
   /**
-   * Set the cursor. But the cursor in item's style has higher priority.
-   * @param cursor
+   * <zh/> 设置光标样式，注意，item上的样式优先级更高
+   *
+   * <en/> Set the cursor's style. Note that the cursor in item's style has higher priority
+   * @param cursor - <zh/> 光标样式 | <en/> cursor style
+   * @public
    */
   public setCursor(cursor: Cursor) {
     this.canvas.setCursor(cursor);
     this.labelCanvas.setCursor(cursor);
     this.transientCanvas.setCursor(cursor);
     this.transientLabelCanvas.setCursor(cursor);
+  }
+
+  /**
+   * <zh/> 获取光标样式
+   *
+   * <en/> Get the cursor's style.
+   * @returns - <zh/> 光标样式 | <en/> cursor style
+   * @public
+   */
+  public getCursor(): Cursor {
+    return this.canvas.getConfig().cursor;
   }
 
   /**

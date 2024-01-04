@@ -4,6 +4,7 @@ import { ComboModel, EdgeModel, NodeModel } from '../../types';
 import { Behavior } from '../../types/behavior';
 import { Point } from '../../types/common';
 import { IG6GraphEvent } from '../../types/event';
+import type { VisibilityOptions } from '../../types/graph';
 import { graphComboTreeDfs } from '../../utils/data';
 import { isPointPreventPolylineOverlap, isPolylineWithObstacleAvoidance } from '../../utils/polyline';
 
@@ -198,7 +199,21 @@ export class DragNode extends Behavior {
         ancestors.push(ancestor);
       }
     });
-    return uniq(ancestors).filter((item) => this.graph.getItemVisible(item.id));
+    return uniq(ancestors).filter((item) => this.graph.getItemVisibility(item.id));
+  }
+
+  private showItem(ids: ID | ID[], options: VisibilityOptions['visibility']) {
+    const idArr = Array.isArray(ids) ? ids : [ids];
+    idArr.forEach((id) => {
+      this.graph.setItemVisibility(id, 'visibility', options);
+    });
+  }
+
+  private hideItem(ids: ID | ID[], options: VisibilityOptions['hidden']) {
+    const idArr = Array.isArray(ids) ? ids : [ids];
+    idArr.forEach((id) => {
+      this.graph.setItemVisibility(id, 'hidden', options);
+    });
   }
 
   public onPointerDown(event: IG6GraphEvent) {
@@ -269,14 +284,14 @@ export class DragNode extends Behavior {
           hiddenEdgeIds.forEach((edgeId) => {
             this.hiddenShapeCache.set(edgeId, this.graph.getItemVisibleShapeIds(edgeId));
           });
-          this.graph.hideItem(hiddenEdgeIds, {
+          this.hideItem(hiddenEdgeIds, {
             disableAnimate: true,
           });
           const hiddenRelatedNodeIds = this.hiddenRelatedNodes.map((node) => node.id);
           hiddenRelatedNodeIds.forEach((nodeId) => {
             this.hiddenShapeCache.set(nodeId, this.graph.getItemVisibleShapeIds(nodeId));
           });
-          this.graph.hideItem(hiddenRelatedNodeIds, {
+          this.hideItem(hiddenRelatedNodeIds, {
             disableAnimate: true,
             keepRelated: true,
           });
@@ -284,7 +299,7 @@ export class DragNode extends Behavior {
           hiddenComboTreeItemIds.forEach((itemId) => {
             this.hiddenShapeCache.set(itemId, this.graph.getItemVisibleShapeIds(itemId));
           });
-          this.graph.hideItem(
+          this.hideItem(
             this.hiddenComboTreeItems.map((child) => child.id),
             {
               disableAnimate: true,
@@ -315,18 +330,18 @@ export class DragNode extends Behavior {
           this.selectedNodeIds.forEach((itemId) => {
             this.hiddenShapeCache.set(itemId, this.graph.getItemVisibleShapeIds(itemId));
           });
-          this.graph.hideItem(this.selectedNodeIds, { disableAnimate: true });
+          this.hideItem(this.selectedNodeIds, { disableAnimate: true });
 
           const hiddenEdgeIds = this.hiddenEdges.map((edge) => edge.id);
           hiddenEdgeIds.forEach((itemId) => {
             this.hiddenShapeCache.set(itemId, this.graph.getItemVisibleShapeIds(itemId));
           });
-          this.graph.hideItem(hiddenEdgeIds, { disableAnimate: true });
+          this.hideItem(hiddenEdgeIds, { disableAnimate: true });
           const hiddenRelatedNodeIds = this.hiddenRelatedNodes.map((node) => node.id);
           hiddenRelatedNodeIds.forEach((itemId) => {
             this.hiddenShapeCache.set(itemId, this.graph.getItemVisibleShapeIds(itemId));
           });
-          this.graph.hideItem(hiddenRelatedNodeIds, {
+          this.hideItem(hiddenRelatedNodeIds, {
             disableAnimate: true,
             keepRelated: true,
           });
@@ -334,7 +349,7 @@ export class DragNode extends Behavior {
           hiddenComboTreeItemIds.forEach((itemId) => {
             this.hiddenShapeCache.set(itemId, this.graph.getItemVisibleShapeIds(itemId));
           });
-          this.graph.hideItem(
+          this.hideItem(
             this.hiddenComboTreeItems.map((combo) => combo.id),
             { disableAnimate: true },
           );
@@ -375,7 +390,7 @@ export class DragNode extends Behavior {
         this.hiddenNearEdgesCache.forEach((edge) => {
           if (!hiddenNearEdgesIds.includes(edge.id)) {
             this.graph.drawTransient('edge', edge.id, { action: 'remove' });
-            this.graph.showItem(edge.id);
+            this.showItem(edge.id);
           }
         });
 
@@ -390,7 +405,7 @@ export class DragNode extends Behavior {
           hiddenNearEdgeIds.forEach((itemId) => {
             this.hiddenShapeCache.set(itemId, this.graph.getItemVisibleShapeIds(itemId));
           });
-          this.graph.hideItem(hiddenNearEdgeIds, { disableAnimate: true });
+          this.hideItem(hiddenNearEdgeIds, { disableAnimate: true });
         }
       }
     }
@@ -504,7 +519,7 @@ export class DragNode extends Behavior {
     this.graph.pauseStack();
     if (this.hiddenEdges.length) {
       this.hiddenEdges.forEach((edge) => {
-        this.graph.showItem(edge.id, {
+        this.showItem(edge.id, {
           disableAnimate: true,
           shapeIds: this.hiddenShapeCache.get(edge.id),
         });
@@ -514,7 +529,7 @@ export class DragNode extends Behavior {
     }
     if (this.hiddenRelatedNodes.length) {
       this.hiddenRelatedNodes.forEach((node) => {
-        this.graph.showItem(node.id, {
+        this.showItem(node.id, {
           disableAnimate: true,
           shapeIds: this.hiddenShapeCache.get(node.id),
         });
@@ -524,14 +539,14 @@ export class DragNode extends Behavior {
     }
     if (this.hiddenNearEdges.length) {
       this.hiddenNearEdges.forEach((edge) => {
-        this.graph.showItem(edge.id, { disableAnimate: true });
+        this.showItem(edge.id, { disableAnimate: true });
         this.hiddenShapeCache.delete(edge.id);
       });
       this.hiddenNearEdges = [];
     }
     if (this.hiddenComboTreeItems.length) {
       this.hiddenComboTreeItems.forEach((edge) => {
-        this.graph.showItem(edge.id, {
+        this.showItem(edge.id, {
           disableAnimate: true,
           shapeIds: this.hiddenShapeCache.get(edge.id),
         });
@@ -542,7 +557,7 @@ export class DragNode extends Behavior {
     const enableTransient = this.options.enableTransient && this.graph.rendererType !== 'webgl-3d';
     if (enableTransient) {
       this.originPositions.concat(positions).forEach((pos) => {
-        this.graph.showItem(pos.id, {
+        this.showItem(pos.id, {
           disableAnimate: true,
           shapeIds: this.hiddenShapeCache.get(pos.id),
         });

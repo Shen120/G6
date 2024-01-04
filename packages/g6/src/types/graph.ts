@@ -18,6 +18,21 @@ import { ComboMapper, EdgeMapper, NodeMapper, Specification } from './spec';
 import { ThemeOptionsOf, ThemeRegistry } from './theme';
 import { FitViewRules, GraphTransformOptions } from './view';
 
+export type Visibility = 'visibility' | 'hidden';
+
+export type VisibilityOptions = {
+  visibility: {
+    disableAnimate?: boolean;
+    shapeIds?: string | string[];
+  };
+  hidden: {
+    disableAnimate?: boolean;
+    keepKeyShape?: boolean;
+    keepRelated?: boolean;
+    shapeIds?: string | string[];
+  };
+};
+
 export interface IGraph<B extends BehaviorRegistry = BehaviorRegistry, T extends ThemeRegistry = ThemeRegistry>
   extends EventEmitter {
   [x: string]: any;

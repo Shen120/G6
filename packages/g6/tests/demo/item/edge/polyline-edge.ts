@@ -216,10 +216,10 @@ const createControls = () => {
     parentEle,
     'show obstacle',
     () => {
-      graph.showItem('obstacle');
+      graph.setItemVisibility('obstacle', 'visibility');
     },
     () => {
-      graph.hideItem('obstacle');
+      graph.setItemVisibility('obstacle', 'hidden');
     },
   );
 
@@ -344,7 +344,7 @@ export default (context: TestCaseContext) => {
   });
 
   setTimeout(() => {
-    graph.hideItem('obstacle');
+    graph.setItemVisibility('obstacle', 'hidden');
   });
 
   // 3.return graph

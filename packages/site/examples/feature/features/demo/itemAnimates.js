@@ -236,12 +236,12 @@ const updateActions = {
 };
 const showHideActions = {
   'Hide/Show Node(show/hide)': () => {
-    if (graph.getItemVisible('a')) {
-      graph.hideItem('a');
+    if (graph.getItemVisibility('a')) {
+      graph.setItemVisibility('a', 'hidden');
     } else {
-      graph.showItem('a');
-      graph.showItem('a2b');
-      graph.showItem('a2c');
+      graph.setItemVisibility('a', 'visibility');
+      graph.setItemVisibility('a2b', 'visibility');
+      graph.setItemVisibility('a2c', 'visibility');
     }
   },
 };

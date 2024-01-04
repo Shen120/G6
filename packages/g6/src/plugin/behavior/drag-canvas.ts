@@ -142,11 +142,11 @@ export class DragCanvas extends Behavior {
       this.hiddenEdgeIds = graph
         .getAllEdgesData()
         .map((edge) => edge.id)
-        .filter((id) => graph.getItemVisible(id) === true);
+        .filter((id) => graph.getItemVisibility(id) === true);
       this.hiddenNodeIds = graph
         .getAllNodesData()
         .map((node) => node.id)
-        .filter((id) => graph.getItemVisible(id) === true);
+        .filter((id) => graph.getItemVisibility(id) === true);
       const hiddenIds = [...this.hiddenNodeIds];
       const sectionNum = Math.ceil(hiddenIds.length / tileBehaviorSize);
       const sections = Array.from({ length: sectionNum }, (v, i) =>
@@ -160,9 +160,8 @@ export class DragCanvas extends Behavior {
         }
         const section = sections.shift();
         graph.executeWithNoStack(() => {
-          graph.hideItem(section, {
-            disableAnimate: false,
-            keepKeyShape: true,
+          section.forEach((id) => {
+            graph.setItemVisibility(id, 'hidden', { disableAnimate: false, keepKeyShape: true });
           });
         });
         this.tileRequestId = requestAnimationFrame(update);
@@ -297,7 +296,9 @@ export class DragCanvas extends Behavior {
             return;
           }
           graph.startHistoryBatch();
-          graph.showItem(sections.shift(), { disableAnimate: false });
+          sections.shift().forEach((id) => {
+            graph.setItemVisibility(id, 'visibility', { disableAnimate: false });
+          });
           graph.stopHistoryBatch();
           this.tileRequestId = requestAnimationFrame(update);
         };

@@ -22,9 +22,9 @@ export class VisibilityUpdatedCommand implements Command {
   private toggleItemsVisible(graph: IGraph, values) {
     graph.pauseStack();
     each(values, (value) =>
-      value.visible
-        ? graph.showItem(value.ids, { disableAnimate: this.disableAnimate })
-        : graph.hideItem(value.ids, { disableAnimate: this.disableAnimate }),
+      value.ids.forEach((id) =>
+        graph.setItemVisibility(id, value.visible ? 'visibility' : 'hidden', { disableAnimate: this.disableAnimate }),
+      ),
     );
     graph.resumeStack();
   }
