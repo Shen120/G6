@@ -528,7 +528,7 @@ export class LodController extends Base {
         this.displayModelCache.delete(model.id);
       }
       if (this.options?.disableLod) {
-        this.this.showItem(model.id, {
+        this.showItem(model.id, {
           shapeIds: ['labelShape', 'labelBackgroundShape'],
           disableAnimate: true,
         });

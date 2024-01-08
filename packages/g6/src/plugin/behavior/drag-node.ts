@@ -202,7 +202,7 @@ export class DragNode extends Behavior {
     return uniq(ancestors).filter((item) => this.graph.getItemVisibility(item.id));
   }
 
-  private showItem(ids: ID | ID[], options: VisibilityOptions['visibility']) {
+  private showItem(ids: ID | ID[], options?: VisibilityOptions['visibility']) {
     const idArr = Array.isArray(ids) ? ids : [ids];
     idArr.forEach((id) => {
       this.graph.setItemVisibility(id, 'visibility', options);

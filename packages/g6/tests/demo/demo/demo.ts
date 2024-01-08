@@ -294,7 +294,7 @@ const create2DGraph = (
     },
   });
 
-  // graph.zoom(0.15);
+  // graph.zoomBy(0.15);
   return graph;
 };
 

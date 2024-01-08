@@ -186,7 +186,7 @@ export class Toolbar extends Base {
     const { zoomSensitivity } = this.options;
     const zoomRatio = 100 / (100 + zoomSensitivity);
     if (zoomRatio !== 1) {
-      this.graph.zoom(zoomRatio, undefined, {});
+      this.graph.zoomBy(zoomRatio, undefined, {});
     }
   }
   /**
@@ -196,7 +196,7 @@ export class Toolbar extends Base {
     const { zoomSensitivity } = this.options;
     const zoomRatio = (100 + zoomSensitivity) / 100;
     if (zoomRatio !== 1) {
-      this.graph.zoom(zoomRatio, undefined, {});
+      this.graph.zoomBy(zoomRatio, undefined, {});
     }
   }
   /**

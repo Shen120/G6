@@ -76,7 +76,7 @@ const actions = {
     graph.zoomTo((currentZoom * 1) / 1.1, undefined, { duration: 500 });
   },
   Translate: () => {
-    graph.translate({ dx: Math.random() * 100 - 50, dy: Math.random() * 100 - 50 }, { duration: 500 });
+    graph.translateBy({ dx: Math.random() * 100 - 50, dy: Math.random() * 100 - 50 }, { duration: 500 });
   },
   '1:1': () => {
     graph.zoomTo(1, undefined, { duration: 500 });

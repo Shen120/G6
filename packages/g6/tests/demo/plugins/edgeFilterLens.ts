@@ -177,7 +177,7 @@ export default (context: TestCaseContext, options = {}) => {
   const cloneData = clone(data);
   cloneData.edges.forEach((edge) => (edge.data = { label: edge.id }));
   graph.read(cloneData);
-  graph.zoom(0.6);
+  graph.zoomBy(0.6);
 
   return graph;
 };

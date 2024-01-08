@@ -257,7 +257,7 @@ export class DragCanvas extends Behavior {
     if (direction === 'both' && !diffX && !diffY) return;
 
     const { dx, dy } = this.formatDisplacement(diffX, diffY);
-    graph.translate({ dx, dy });
+    graph.translateBy({ dx, dy });
 
     this.pointerDownAt = { x: client.x, y: client.y };
 
@@ -343,7 +343,7 @@ export class DragCanvas extends Behavior {
       }
       if (dx || dy) {
         const { dx: formattedDx, dy: formattedDy } = this.formatDisplacement(dx, dy);
-        graph.translate({ dx: formattedDx, dy: formattedDy });
+        graph.translateBy({ dx: formattedDx, dy: formattedDy });
         if (eventName) {
           this.graph.emit(eventName, {
             translate: { dx: formattedDx, dy: formattedDy },

@@ -273,7 +273,7 @@ export class ZoomCanvas extends Behavior {
       this.balanceItemSize();
     }
 
-    graph.zoom(zoomRatio, { x: client.x, y: client.y });
+    graph.zoomBy(zoomRatio, { x: client.x, y: client.y });
 
     this.lastWheelTriggerTime = now;
 
@@ -398,7 +398,7 @@ export class ZoomCanvas extends Behavior {
           break;
       }
       if (zoomRatio !== 1) {
-        graph.zoom(zoomRatio);
+        graph.zoomBy(zoomRatio);
         if (eventName) {
           graph.emit(eventName, { zoom: { ratio: zoomRatio } });
         }

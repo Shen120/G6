@@ -1,5 +1,5 @@
 import EventEmitter from '@antv/event-emitter';
-import { AABB, Canvas, Cursor, DataURLType, DisplayObject, PointLike, Rect } from '@antv/g';
+import { AABB, Canvas, Cursor, DataURLType, DisplayObject, PointLike, Rect, Rectangle } from '@antv/g';
 import { GraphChange, ID } from '@antv/graphlib';
 import { clone, groupBy, isArray, isEmpty, isEqual, isNil, isNumber, isObject, isString, map } from '@antv/util';
 import Node from '../item/node';
@@ -561,117 +561,11 @@ export class Graph<B extends BehaviorRegistry, T extends ThemeRegistry> extends 
     this.stopHistoryBatch();
   }
 
-  public getViewportCenter(): PointLike {
-    const { width, height } = this.canvas.getConfig();
-    return { x: width! / 2, y: height! / 2 };
-  }
-  public async transform(options: GraphTransformOptions, effectTiming?: CameraAnimationOptions): Promise<void> {
-    if (isEmptyGraph(this, true)) return;
-    const { tileLodSize } = this.specification.optimize || {};
-    await this.hooks.viewportchange.emitLinearAsync({
-      transform: options,
-      effectTiming,
-      tileLodSize,
-    });
-    this.emit('viewportchange', options);
-  }
-
   /**
    * Stop the current transition of transform immediately.
    */
   public stopTransformTransition() {
     this.canvas.getCamera().cancelLandmarkAnimation();
-  }
-
-  /**
-   * Move the graph with a relative distance under viewport coordinates.
-   * @param dx x of the relative distance
-   * @param dy y of the relative distance
-   * @param distance
-   * @param effectTiming animation configurations
-   */
-  public async translate(
-    distance: Partial<{
-      dx: number;
-      dy: number;
-      dz: number;
-    }>,
-    effectTiming?: CameraAnimationOptions,
-  ) {
-    const { x: cx, y: cy } = this.getViewportCenter();
-    const { dx, dy, dz } = distance;
-    await this.transform(
-      {
-        translate: {
-          dx,
-          dy,
-          dz,
-          targetX: cx - dx,
-          targetY: cy - dy,
-        },
-      },
-      effectTiming,
-    );
-  }
-
-  /**
-   * Move the graph to destination under viewport coordinates.
-   * @param destination destination under viewport coordinates.
-   * @param destination.x
-   * @param destination.y
-   * @param effectTiming animation configurations
-   */
-  public async translateTo({ x, y }: Point, effectTiming?: CameraAnimationOptions) {
-    const { x: cx, y: cy } = this.getViewportCenter();
-    const canvasPoint = this.canvas.viewport2Canvas({ x, y });
-
-    await this.transform(
-      {
-        translate: {
-          dx: cx - x,
-          dy: cy - y,
-          targetX: canvasPoint.x,
-          targetY: canvasPoint.y,
-        },
-      },
-      effectTiming,
-    );
-  }
-
-  /**
-   * Zoom the graph with a relative ratio.
-   * @param ratio relative ratio to zoom
-   * @param origin origin under viewport coordinates.
-   * @param effectTiming animation configurations
-   */
-  public async zoom(ratio: number, origin?: Point, effectTiming?: CameraAnimationOptions) {
-    await this.transform(
-      {
-        zoom: {
-          ratio,
-        },
-        origin,
-      },
-      effectTiming,
-    );
-  }
-
-  /**
-   * Zoom the graph to a specified ratio.
-   * @param zoom specified ratio
-   * @param origin zoom center
-   * @param effectTiming animation configurations
-   */
-  public async zoomTo(zoom: number, origin?: PointLike, effectTiming?: CameraAnimationOptions) {
-    await this.zoom(zoom / this.canvas.getCamera().getZoom(), origin, effectTiming);
-  }
-
-  /**
-   * Return the current zoom level of camera.
-   * @returns current zoom
-   */
-  public getZoom() {
-    return this.canvas.getCamera().getZoom();
   }
 
   /**
@@ -703,11 +597,187 @@ export class Graph<B extends BehaviorRegistry, T extends ThemeRegistry> extends 
   }
 
   /**
-   * Fit the graph content to the view.
-   * @param options.padding padding while fitting
-   * @param options.rules rules for fitting
-   * @param options
-   * @param effectTiming animation configurations
+   * Get item by id. We don't want users call this private API.
+   * @param id
+   * @returns Node | Edge | Combo
+   */
+  private getItemById(id: ID) {
+    return this.itemController.getItemById(id);
+  }
+
+  /**
+   * Get the size of the graph canvas.
+   * @returns [width, height]
+   * @group View
+   */
+  public getSize(): number[] {
+    const { width = 500, height = 500 } = this.specification;
+    return [width, height];
+  }
+
+  /**
+   * Set the size for the graph canvas.
+   * @param number[] [width, height]
+   * @param size
+   * @group View
+   */
+  public setSize(size: number[]) {
+    if (!isArray(size) || size.length < 2) {
+      console.warn(
+        `Failed to setSize. The parameter size: ${size} is invalid. It must be an array with 2 number elements.`,
+      );
+      return;
+    }
+    const oldSize = [this.specification.width, this.specification.height];
+    this.emit('beforesetsize', { oldSize, size: size });
+    this.specification.width = size[0];
+    this.specification.height = size[1];
+    [this.canvas, this.labelCanvas, this.transientCanvas, this.transientLabelCanvas, this.backgroundCanvas].forEach(
+      (canvas) => {
+        canvas.resize(size[0], size[1]);
+      },
+    );
+    this.emit('aftersetsize', { oldSize, size: size });
+  }
+
+  public getCanvasRange(): Bounds {
+    const [width, height] = this.getSize();
+    const leftTop = this.getCanvasByViewport({ x: 0, y: 0 });
+    const rightBottom = this.getCanvasByViewport({ x: width, y: height });
+    return {
+      min: [leftTop.x, leftTop.y, leftTop.z],
+      max: [rightBottom.x, rightBottom.y, rightBottom.z],
+      center: [(leftTop.x + rightBottom.x) / 2, (leftTop.y + rightBottom.y) / 2, (leftTop.z + rightBottom.z) / 2],
+      halfExtents: [(rightBottom.x - leftTop.x) / 2, (rightBottom.y - leftTop.y) / 2, (rightBottom.z - leftTop.z) / 2],
+    };
+  }
+
+  /** ===== Transform API ===== */
+
+  public async transform(options: GraphTransformOptions, effectTiming?: CameraAnimationOptions): Promise<void> {
+    if (isEmptyGraph(this, true)) return;
+    const { tileLodSize } = this.specification.optimize || {};
+    await this.hooks.viewportchange.emitLinearAsync({
+      transform: options,
+      effectTiming,
+      tileLodSize,
+    });
+    this.emit('viewportchange', options);
+  }
+
+  /**
+   * <zh/> 调整相对缩放比例
+   *
+   * <en/> Zoom the graph with a relative ratio.
+   * @param ratio - <zh/> 相对缩放比例值 | <en/> relative ratio to zoom
+   * @param origin - <zh`/> 缩放中心 | <en/> zoom center
+   * @param effectTiming - <zh/> 动画配置 | <en/> animation configurations
+   * @public
+   */
+  public async zoomBy(ratio: number, origin?: Point, effectTiming?: CameraAnimationOptions) {
+    await this.transform(
+      {
+        zoom: {
+          ratio,
+        },
+        origin,
+      },
+      effectTiming,
+    );
+  }
+
+  /**
+   * <zh/> 设置绝对缩放比例
+   *
+   * <en/> Zoom the graph with an absolute ratio.
+   * @param zoom - <zh/> 绝对缩放比例值 | <en/> absolute ratio to zoom
+   * @param origin - <zh/> 缩放中心 | <en/> zoom center
+   * @param effectTiming - <zh/> 动画配置 | <en/> animation configurations
+   * @public
+   */
+  public async zoomTo(zoom: number, origin?: PointLike, effectTiming?: CameraAnimationOptions) {
+    await this.zoomBy(zoom / this.canvas.getCamera().getZoom(), origin, effectTiming);
+  }
+
+  /**
+   * <zh/> 获取当前缩放比例
+   *
+   * <en/> Get the current zoom ratio.
+   * @returns - <zh/> 缩放比例 | <en/> zoom ratio
+   * @public
+   */
+  public getZoom() {
+    return this.canvas.getCamera().getZoom();
+  }
+
+  /**
+   * <zh/> 图进行相对平移
+   *
+   * <en/> Translate the graph with a relative distance.
+   * @param distance - <zh/> 三维空间下的相对平移距离 | <en/> the distance to translate in 3d space
+   * @param effectTiming - <zh/> 动画配置 | <en/> animation configurations
+   */
+  public async translateBy(
+    distance: Partial<{
+      dx: number;
+      dy: number;
+      dz: number;
+    }>,
+    effectTiming?: CameraAnimationOptions,
+  ) {
+    const { x: cx, y: cy } = this.getViewportCenter();
+    const { dx, dy, dz } = distance;
+    await this.transform(
+      {
+        translate: {
+          dx,
+          dy,
+          dz,
+          targetX: cx - dx,
+          targetY: cy - dy,
+        },
+      },
+      effectTiming,
+    );
+  }
+
+  /**
+   * <zh/> 图平移到指定位置
+   *
+   * <en/> Translate the graph to a specific position.
+   * @param position - <zh/> 二维空间下的目标位置 | <en/> the target position in 2d space
+   * @param effectTiming - <zh/> 动画配置 | <en/> animation configurations
+   * @public
+   */
+  public async translateTo(position: Point, effectTiming?: CameraAnimationOptions) {
+    const { x, y } = position;
+    const { x: cx, y: cy } = this.getViewportCenter();
+    const canvasPoint = this.canvas.viewport2Canvas({ x, y });
+
+    await this.transform(
+      {
+        translate: {
+          dx: cx - x,
+          dy: cy - y,
+          targetX: canvasPoint.x,
+          targetY: canvasPoint.y,
+        },
+      },
+      effectTiming,
+    );
+  }
+
+  /** ===== Canvas/Viewport API ===== */
+
+  /**
+   * <zh/> 适应视口，使图内容完全显示
+   *
+   * <en/> Fit the graph to the view.
+   * @param options - <zh/> 适应视口的配置项 | <en/> options for fitting the view
+   * @param options.padding
+   * @param effectTiming - <zh/> 动画配置 | <en/> animation configurations
+   * @param options.rules
+   * @public
    */
   public async fitView(
     options?: {
@@ -786,10 +856,14 @@ export class Graph<B extends BehaviorRegistry, T extends ThemeRegistry> extends 
       effectTiming,
     );
   }
+
   /**
-   * Fit the graph center to the view center.
-   * @param boundsType
-   * @param effectTiming animation configurations
+   * <zh/> 适应视口，使图内容完全显示且居中
+   *
+   * <en/> Fit the graph center to the view center.
+   * @param boundsType - <zh/> 边界类型 | <en/> bounds type
+   * @param effectTiming - <zh/> 动画配置 | <en/> animation configurations
+   * @public
    */
   public async fitCenter(boundsType: 'render' | 'layout' = 'render', effectTiming?: CameraAnimationOptions) {
     const {
@@ -802,11 +876,14 @@ export class Graph<B extends BehaviorRegistry, T extends ThemeRegistry> extends 
           getLayoutBounds(this);
     await this.translateTo(this.canvas.canvas2Viewport({ x: graphCenterX, y: graphCenterY }), effectTiming);
   }
+
   /**
-   * Move the graph to make the item align the view center.
-   * @param item node/edge/combo item or its id
-   * @param id
-   * @param effectTiming animation configurations
+   * <zh/> 将元素移动至视口中心
+   *
+   * <en/> Move the item to the view center.
+   * @param id - <zh/> 元素 ID | <en/> item id
+   * @param effectTiming - <zh/> 动画配置 | <en/> animation configurations
+   * @public
    */
   public async focusItem(id: ID | ID[], effectTiming?: CameraAnimationOptions) {
     let bounds: AABB | null = null;
@@ -831,89 +908,48 @@ export class Graph<B extends BehaviorRegistry, T extends ThemeRegistry> extends 
   }
 
   /**
-   * Get item by id. We don't want users call this private API.
-   * @param id
-   * @returns Node | Edge | Combo
+   * <zh/> 获取视窗的中心点坐标
+   *
+   * <en/> Get the center point of the viewport.
+   * @returns - <zh/> 视窗中心点坐标 | <en/> the center point of the viewport
+   * @public
    */
-  private getItemById(id: ID) {
-    return this.itemController.getItemById(id);
+  public getViewportCenter(): PointLike {
+    const { width, height } = this.canvas.getConfig();
+    return { x: width! / 2, y: height! / 2 };
   }
 
   /**
-   * Get the size of the graph canvas.
-   * @returns [width, height]
-   * @group View
-   */
-  public getSize(): number[] {
-    const { width = 500, height = 500 } = this.specification;
-    return [width, height];
-  }
-
-  /**
-   * Set the size for the graph canvas.
-   * @param number[] [width, height]
-   * @param size
-   * @group View
-   */
-  public setSize(size: number[]) {
-    if (!isArray(size) || size.length < 2) {
-      console.warn(
-        `Failed to setSize. The parameter size: ${size} is invalid. It must be an array with 2 number elements.`,
-      );
-      return;
-    }
-    const oldSize = [this.specification.width, this.specification.height];
-    this.emit('beforesetsize', { oldSize, size: size });
-    this.specification.width = size[0];
-    this.specification.height = size[1];
-    [this.canvas, this.labelCanvas, this.transientCanvas, this.transientLabelCanvas, this.backgroundCanvas].forEach(
-      (canvas) => {
-        canvas.resize(size[0], size[1]);
-      },
-    );
-    this.emit('aftersetsize', { oldSize, size: size });
-  }
-
-  public getCanvasRange(): Bounds {
-    const [width, height] = this.getSize();
-    const leftTop = this.getCanvasByViewport({ x: 0, y: 0 });
-    const rightBottom = this.getCanvasByViewport({ x: width, y: height });
-    return {
-      min: [leftTop.x, leftTop.y, leftTop.z],
-      max: [rightBottom.x, rightBottom.y, rightBottom.z],
-      center: [(leftTop.x + rightBottom.x) / 2, (leftTop.y + rightBottom.y) / 2, (leftTop.z + rightBottom.z) / 2],
-      halfExtents: [(rightBottom.x - leftTop.x) / 2, (rightBottom.y - leftTop.y) / 2, (rightBottom.z - leftTop.z) / 2],
-    };
-  }
-
-  /**
-   * Get the rendering coordinate according to the canvas dom (viewport) coordinate.
-   * @param Point rendering coordinate
-   * @param viewportPoint
-   * @returns canvas dom (viewport) coordinate
-   * @group View
+   * <zh/> 给定视窗 DOM 坐标，转换为画布上的绘制坐标
+   *
+   * <en/> Get the rendering coordinate according to the canvas dom (viewport) coordinate.
+   * @param viewportPoint - <zh/> 视窗 DOM 坐标 | <en/> viewport coordinate
+   * @returns - <zh/> 画布上的绘制坐标 | <en/> rendering coordinate
+   * @public
    */
   public getCanvasByViewport(viewportPoint: Point): Point {
     return this.canvas.viewport2Canvas(viewportPoint);
   }
 
   /**
-   * Get the canvas dom (viewport) coordinate according to the rendering coordinate.
-   * @param Point canvas dom (viewport) coordinate
-   * @param canvasPoint
-   * @returns rendering coordinate
-   * @group View
+   * <zh/> 给定画布上的绘制坐标，转换为视窗 DOM 坐标
+   *
+   * <en/> Get the canvas dom (viewport) coordinate according to the rendering coordinate.
+   * @param canvasPoint - <zh/> 画布上的绘制坐标 | <en/> rendering coordinate
+   * @returns - <zh/> 视窗 DOM 坐标 | <en/> viewport coordinate
+   * @public
    */
   public getViewportByCanvas(canvasPoint: Point): Point {
     return this.canvas.canvas2Viewport(canvasPoint);
   }
 
   /**
-   * Get the browser coordinate according to the rendering coordinate.
-   * @param Point rendering coordinate
-   * @param canvasPoint
-   * @returns browser coordinate
-   * @group View
+   * <zh/> 给定画布上的绘制坐标，转换为浏览器坐标
+   *
+   * <en/> Get the browser coordinate according to the rendering coordinate.
+   * @param canvasPoint - <zh/> 画布上的绘制坐标 | <en/> rendering coordinate
+   * @returns - <zh/> 浏览器坐标 | <en/> browser coordinate
+   * @public
    */
   public getClientByCanvas(canvasPoint: Point): Point {
     const viewportPoint = this.canvas.canvas2Viewport(canvasPoint);
@@ -921,15 +957,29 @@ export class Graph<B extends BehaviorRegistry, T extends ThemeRegistry> extends 
   }
 
   /**
-   * Get the rendering coordinate according to the browser coordinate.
-   * @param Point browser coordinate
-   * @param clientPoint
-   * @returns rendering coordinate
-   * @group View
+   * <zh/> 给定浏览器坐标，转换为画布上的绘制坐标
+   *
+   * <en/> Get the rendering coordinate according to the browser coordinate.
+   * @param clientPoint - <zh/> 浏览器坐标 | <en/> browser coordinate
+   * @returns - <zh/> 画布上的绘制坐标 | <en/> rendering coordinate
+   * @public
    */
   public getCanvasByClient(clientPoint: Point): Point {
     const viewportPoint = this.canvas.client2Viewport(clientPoint);
     return this.canvas.viewport2Canvas(viewportPoint as any);
+  }
+
+  /**
+   * <zh/> 获取指定元素的包围盒
+   *
+   * <en/> Get the bounding box of the specified item.
+   * @param id - <zh/> 元素 ID | <en/> item id
+   * @returns - <zh/> 包围盒 | <en/> bounding box
+   * @public
+   */
+  public getBoundingClientRect(id: ID): Rectangle {
+    const item = this.getItemById(id);
+    return item.group.getBoundingClientRect();
   }
 
   // ===== item operations =====

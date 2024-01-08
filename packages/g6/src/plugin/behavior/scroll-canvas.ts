@@ -105,7 +105,7 @@ export class ScrollCanvas extends Behavior {
       const diffY = ev.deltaY || ev.movement.y;
 
       const { dx, dy } = this.formatDisplacement(diffX, diffY);
-      graph.translate({ dx: -dx, dy: -dy });
+      graph.translateBy({ dx: -dx, dy: -dy });
     }
 
     if (enableOptimize) {

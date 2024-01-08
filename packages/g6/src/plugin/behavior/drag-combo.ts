@@ -4,8 +4,8 @@ import { ComboModel, EdgeModel, NodeModel } from '../../types';
 import { Behavior } from '../../types/behavior';
 import { Point } from '../../types/common';
 import { IG6GraphEvent } from '../../types/event';
+import { VisibilityOptions } from '../../types/graph';
 import { graphComboTreeDfs } from '../../utils/data';
-import { VisibilityOptions } from '/runtime/graph';
 
 const DELEGATE_SHAPE_ID = 'g6-drag-combo-delegate-shape';
 

@@ -156,7 +156,7 @@ export default async () => {
 
     graph.on('afterlayout', () => {
       clearInterval(timer);
-      graph.zoom(0.1, undefined, {
+      graph.zoomBy(0.1, undefined, {
         duration: 1000,
       });
     });
@@ -190,7 +190,7 @@ export default async () => {
     graph.on('afterlayout', () => {
       clearInterval(timer);
 
-      graph.zoom(0.1, undefined, {
+      graph.zoomBy(0.1, undefined, {
         duration: 1000,
       });
     });
